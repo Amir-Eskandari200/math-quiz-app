@@ -13,10 +13,9 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
-from kivy.graphics import Color, Rectangle
+from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.utils import get_color_from_hex, platform
 from kivy.animation import Animation
-from kivy.core.window import Window
 
 
 FONT_NAME = 'Vazir'
@@ -24,6 +23,7 @@ LabelBase.register(name=FONT_NAME, fn_regular='assets/Vazirmatn-Regular.ttf')
 
 BG_COLOR = '#1e1e2e'
 DRAWER_COLOR = '#181825'
+ITEM_COLOR = '#313244'
 BLUE = '#4a90d9'
 GREEN = '#a6e3a1'
 RED = '#e06c75'
@@ -49,6 +49,8 @@ def open_link(url):
 
 
 class ColoredWidget(Widget):
+    """یه پس‌زمینه‌ی تخت و تمام‌صفحه (برای رنگ زمینه‌ی صفحات)."""
+
     def __init__(self, color_hex, **kwargs):
         super().__init__(**kwargs)
         with self.canvas.before:
@@ -59,6 +61,70 @@ class ColoredWidget(Widget):
     def _update(self, *args):
         self.rect.size = self.size
         self.rect.pos = self.pos
+
+
+class Scrim(Widget):
+    """پس‌زمینه‌ی نیمه‌شفاف پشت منو -- فقط وقتی منو بازه لمس رو می‌قاپه."""
+
+    def __init__(self, root_ref, **kwargs):
+        super().__init__(**kwargs)
+        self.root_ref = root_ref
+        with self.canvas.before:
+            Color(0, 0, 0, 0.55)
+            self._rect = Rectangle()
+        self.bind(pos=self._sync, size=self._sync)
+
+    def _sync(self, *args):
+        self._rect.pos = self.pos
+        self._rect.size = self.size
+
+    def on_touch_down(self, touch):
+        if self.root_ref.drawer_open and self.collide_point(*touch.pos):
+            self.root_ref.close_drawer()
+            return True
+        return False
+
+
+class RoundedButton(Button):
+    """دکمه‌ی توپر با گوشه‌های گرد."""
+
+    def __init__(self, bg_hex, radius=16, **kwargs):
+        super().__init__(**kwargs)
+        self.background_normal = ''
+        self.background_down = ''
+        self.background_color = (0, 0, 0, 0)
+        with self.canvas.before:
+            self._color = Color(*get_color_from_hex(bg_hex))
+            self._rect = RoundedRectangle(radius=[radius])
+        self.bind(pos=self._sync, size=self._sync)
+
+    def _sync(self, *args):
+        self._rect.pos = self.pos
+        self._rect.size = self.size
+
+
+class OutlineButton(Button):
+    """دکمه‌ی توخالی با کادر رنگی و گوشه‌های گرد."""
+
+    def __init__(self, border_hex, fill_hex=BG_COLOR, radius=16, border_width=2.5, **kwargs):
+        super().__init__(**kwargs)
+        self.background_normal = ''
+        self.background_down = ''
+        self.background_color = (0, 0, 0, 0)
+        self.border_width = border_width
+        with self.canvas.before:
+            Color(*get_color_from_hex(border_hex))
+            self._border = RoundedRectangle(radius=[radius])
+            Color(*get_color_from_hex(fill_hex))
+            self._fill = RoundedRectangle(radius=[max(radius - border_width, 0)])
+        self.bind(pos=self._sync, size=self._sync)
+
+    def _sync(self, *args):
+        self._border.pos = self.pos
+        self._border.size = self.size
+        b = self.border_width
+        self._fill.pos = (self.x + b, self.y + b)
+        self._fill.size = (max(self.width - 2 * b, 0), max(self.height - 2 * b, 0))
 
 
 class QuizScreen(Screen):
@@ -72,29 +138,27 @@ class QuizScreen(Screen):
         self.fixed_second = fixed_second
 
         root = FloatLayout()
-        self.bg = ColoredWidget(BG_COLOR, size_hint=(1, 1))
-        root.add_widget(self.bg)
+        root.add_widget(ColoredWidget(BG_COLOR, size_hint=(1, 1)))
 
-        # دکمه‌ی همبرگری برای باز کردن منو
-        self.menu_btn = Button(
-            text=fa('منو'),
-            font_name=FONT_NAME,
-            font_size='16sp',
-            size_hint=(0.16, 0.06),
-            pos_hint={'x': 0.02, 'top': 0.98},
-            background_color=get_color_from_hex(DRAWER_COLOR),
+        self.menu_btn = RoundedButton(
+            bg_hex=DRAWER_COLOR,
+            text='\u00bb\u00bb',
+            font_size='18sp',
+            bold=True,
+            size_hint=(0.14, 0.06),
+            pos_hint={'x': 0.03, 'top': 0.97},
             color=get_color_from_hex(WHITE),
+            radius=14,
         )
         self.menu_btn.bind(on_press=lambda *_: App.get_running_app().root.toggle_drawer())
         root.add_widget(self.menu_btn)
 
-        # عنوان بخش فعلی
         self.title_label = Label(
             text=fa(screen_title),
             font_name=FONT_NAME,
             font_size='18sp',
-            size_hint=(0.7, 0.06),
-            pos_hint={'center_x': 0.5, 'top': 0.98},
+            size_hint=(0.65, 0.06),
+            pos_hint={'center_x': 0.53, 'top': 0.97},
             color=get_color_from_hex(WHITE),
         )
         root.add_widget(self.title_label)
@@ -122,55 +186,43 @@ class QuizScreen(Screen):
         )
         root.add_widget(self.input_box)
 
-        self.submit_btn = Button(
+        self.submit_btn = RoundedButton(
+            bg_hex=BLUE,
             text=fa('بررسی'),
             font_size='20sp',
             font_name=FONT_NAME,
             size_hint=(0.6, 0.08),
             pos_hint={'center_x': 0.5, 'top': 0.51},
-            background_color=get_color_from_hex(BLUE),
             color=get_color_from_hex(WHITE),
+            radius=18,
         )
         self.submit_btn.bind(on_press=self.check_answer)
         root.add_widget(self.submit_btn)
 
-        # دکمه‌های دوباره / توقف
         action_row = BoxLayout(
             orientation='horizontal',
             spacing=15,
             size_hint=(0.85, 0.08),
             pos_hint={'center_x': 0.5, 'top': 0.4},
         )
-        self.retry_btn = Button(
+        self.retry_btn = OutlineButton(
+            border_hex=GREEN,
             text=fa('دوباره'),
             font_name=FONT_NAME,
             font_size='18sp',
             color=get_color_from_hex(WHITE),
-            background_normal='',
-            background_color=(0, 0, 0, 0),
+            radius=16,
         )
-        with self.retry_btn.canvas.before:
-            Color(*get_color_from_hex(BG_COLOR))
-            self._retry_bg = Rectangle()
-            Color(*get_color_from_hex(GREEN))
-            self._retry_border = Rectangle()
-        self.retry_btn.bind(pos=self._update_retry_border, size=self._update_retry_border)
         self.retry_btn.bind(on_press=self.retry)
 
-        self.stop_btn = Button(
+        self.stop_btn = OutlineButton(
+            border_hex=RED,
             text=fa('توقف'),
             font_name=FONT_NAME,
             font_size='18sp',
             color=get_color_from_hex(WHITE),
-            background_normal='',
-            background_color=(0, 0, 0, 0),
+            radius=16,
         )
-        with self.stop_btn.canvas.before:
-            Color(*get_color_from_hex(BG_COLOR))
-            self._stop_bg = Rectangle()
-            Color(*get_color_from_hex(RED))
-            self._stop_border = Rectangle()
-        self.stop_btn.bind(pos=self._update_stop_border, size=self._update_stop_border)
         self.stop_btn.bind(on_press=self.stop_quiz)
 
         action_row.add_widget(self.retry_btn)
@@ -189,20 +241,6 @@ class QuizScreen(Screen):
 
         self.add_widget(root)
         self.new_question()
-
-    def _update_retry_border(self, *args):
-        b = 3
-        self._retry_border.pos = self.retry_btn.pos
-        self._retry_border.size = self.retry_btn.size
-        self._retry_bg.pos = (self.retry_btn.x + b, self.retry_btn.y + b)
-        self._retry_bg.size = (self.retry_btn.width - 2 * b, self.retry_btn.height - 2 * b)
-
-    def _update_stop_border(self, *args):
-        b = 3
-        self._stop_border.pos = self.stop_btn.pos
-        self._stop_border.size = self.stop_btn.size
-        self._stop_bg.pos = (self.stop_btn.x + b, self.stop_btn.y + b)
-        self._stop_bg.size = (self.stop_btn.width - 2 * b, self.stop_btn.height - 2 * b)
 
     def new_question(self):
         self.do1 = random.randint(self.min_val, self.max_val)
@@ -288,13 +326,14 @@ class NavDrawer(BoxLayout):
         self.bind(pos=self._update_bg, size=self._update_bg)
 
         def make_menu_button(text_fa, target_screen):
-            btn = Button(
+            btn = RoundedButton(
+                bg_hex=ITEM_COLOR,
                 text=fa(text_fa),
                 font_name=FONT_NAME,
                 font_size='16sp',
                 size_hint=(1, 0.13),
-                background_color=get_color_from_hex('#313244'),
                 color=get_color_from_hex(WHITE),
+                radius=14,
             )
             btn.bind(on_press=lambda *_: self.go_to(target_screen))
             return btn
@@ -303,26 +342,28 @@ class NavDrawer(BoxLayout):
         self.add_widget(make_menu_button('ضرب اعداد دورقمی در اعداد دورقمی', 'quiz_2digit'))
         self.add_widget(make_menu_button('ضرب اعداد سه رقمی در اعداد سه رقمی', 'quiz_3digit'))
 
-        self.add_widget(Widget())  # فاصله‌انداز
+        self.add_widget(Widget())
 
-        about_btn = Button(
-            text=fa('درباره‌ی برنامه'),
+        about_btn = RoundedButton(
+            bg_hex=BLUE,
+            text=fa('درباره\u200cی برنامه'),
             font_name=FONT_NAME,
             font_size='16sp',
             size_hint=(1, 0.12),
-            background_color=get_color_from_hex(BLUE),
             color=get_color_from_hex(WHITE),
+            radius=14,
         )
         about_btn.bind(on_press=lambda *_: self.go_to('about'))
         self.add_widget(about_btn)
 
-        exit_btn = Button(
+        exit_btn = RoundedButton(
+            bg_hex=RED,
             text=fa('خروج'),
             font_name=FONT_NAME,
             font_size='16sp',
             size_hint=(1, 0.12),
-            background_color=get_color_from_hex(RED),
             color=get_color_from_hex(WHITE),
+            radius=14,
         )
         exit_btn.bind(on_press=lambda *_: App.get_running_app().stop())
         self.add_widget(exit_btn)
@@ -341,33 +382,24 @@ class RootWidget(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        self.drawer_width = 0.72
+        self.drawer_open = False
+
         self.sm = ScreenManager(transition=NoTransition())
-        self.sm.add_widget(QuizScreen(fa('ضرب اعداد دورقمی در ۱۱'), 10, 99, fixed_second=11, name='quiz_11'))
-        self.sm.add_widget(QuizScreen(fa('ضرب اعداد دورقمی در اعداد دورقمی'), 10, 99, name='quiz_2digit'))
-        self.sm.add_widget(QuizScreen(fa('ضرب اعداد سه رقمی در اعداد سه رقمی'), 100, 999, name='quiz_3digit'))
+        self.sm.add_widget(QuizScreen('ضرب اعداد دورقمی در ۱۱', 10, 99, fixed_second=11, name='quiz_11'))
+        self.sm.add_widget(QuizScreen('ضرب اعداد دورقمی در اعداد دورقمی', 10, 99, name='quiz_2digit'))
+        self.sm.add_widget(QuizScreen('ضرب اعداد سه رقمی در اعداد سه رقمی', 100, 999, name='quiz_3digit'))
         self.sm.add_widget(AboutScreen(name='about'))
         self.sm.current = 'quiz_11'
         self.add_widget(self.sm)
 
-        self.drawer_width = 0.72  # نسبت به عرض صفحه
-
-        self.scrim = ColoredWidget('#00000099', size_hint=(1, 1))
+        self.scrim = Scrim(self, size_hint=(1, 1))
         self.scrim.opacity = 0
-        self.scrim.disabled = True
-        self.scrim.bind(on_touch_down=self._on_scrim_touch)
         self.add_widget(self.scrim)
 
         self.drawer = NavDrawer(self.sm, size_hint=(self.drawer_width, 1))
         self.drawer.pos_hint = {'x': -self.drawer_width, 'top': 1}
         self.add_widget(self.drawer)
-
-        self.drawer_open = False
-
-    def _on_scrim_touch(self, instance, touch):
-        if self.scrim.collide_point(*touch.pos) and self.drawer_open:
-            self.close_drawer()
-            return True
-        return False
 
     def toggle_drawer(self):
         if self.drawer_open:
@@ -377,16 +409,13 @@ class RootWidget(FloatLayout):
 
     def open_drawer(self):
         self.drawer_open = True
-        self.scrim.disabled = False
-        Animation(opacity=1, d=0.15).start(self.scrim)
-        Animation(x=0, d=0.2, t='out_quad').start(self.drawer)
+        Animation(opacity=1, d=0.2, t='out_quad').start(self.scrim)
+        Animation(x=0, d=0.28, t='out_cubic').start(self.drawer)
 
     def close_drawer(self):
         self.drawer_open = False
-        Animation(opacity=0, d=0.15).start(self.scrim)
-        anim = Animation(x=-self.drawer_width * self.width, d=0.2, t='in_quad')
-        anim.bind(on_complete=lambda *_: setattr(self.scrim, 'disabled', True))
-        anim.start(self.drawer)
+        Animation(opacity=0, d=0.18, t='in_quad').start(self.scrim)
+        Animation(x=-self.drawer_width * self.width, d=0.22, t='in_cubic').start(self.drawer)
 
 
 class QuizApp(App):
