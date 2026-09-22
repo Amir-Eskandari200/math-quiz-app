@@ -397,9 +397,21 @@ class RootWidget(FloatLayout):
         self.scrim.opacity = 0
         self.add_widget(self.scrim)
 
-        self.drawer = NavDrawer(self.sm, size_hint=(self.drawer_width, 1))
-        self.drawer.pos_hint = {'x': -self.drawer_width, 'top': 1}
+        # از pos_hint برای منو استفاده نمی‌کنیم چون Layout هر بار موقعیتش رو
+        # بر اساس pos_hint دوباره حساب می‌کنه و وسط انیمیشن، منو رو به‌جای
+        # اولش (بیرون صفحه) برمی‌گردونه. به‌جاش موقعیت رو دستی مدیریت می‌کنیم.
+        self.drawer = NavDrawer(self.sm, size_hint=(None, 1))
+        self.drawer.width = max(self.width, 1) * self.drawer_width
+        self.drawer.x = -self.drawer.width
+        self.drawer.y = 0
         self.add_widget(self.drawer)
+
+        self.bind(size=self._on_root_resize)
+
+    def _on_root_resize(self, *args):
+        self.drawer.width = max(self.width, 1) * self.drawer_width
+        if not self.drawer_open:
+            self.drawer.x = -self.drawer.width
 
     def toggle_drawer(self):
         if self.drawer_open:
@@ -415,7 +427,7 @@ class RootWidget(FloatLayout):
     def close_drawer(self):
         self.drawer_open = False
         Animation(opacity=0, d=0.18, t='in_quad').start(self.scrim)
-        Animation(x=-self.drawer_width * self.width, d=0.22, t='in_cubic').start(self.drawer)
+        Animation(x=-self.drawer.width, d=0.22, t='in_cubic').start(self.drawer)
 
 
 class QuizApp(App):
