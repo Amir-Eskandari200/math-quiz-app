@@ -1,6 +1,3 @@
-import random
-import time
-
 import arabic_reshaper
 from bidi.algorithm import get_display
 
@@ -8,6 +5,7 @@ from kivy.app import App
 from kivy.core.text import LabelBase
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
@@ -31,7 +29,6 @@ WHITE = '#ffffff'
 
 
 def fa(text):
-    """آماده‌سازی متن فارسی برای نمایش درست (چسبیدن حروف + راست‌به‌چپ)."""
     return get_display(arabic_reshaper.reshape(text))
 
 
@@ -48,9 +45,194 @@ def open_link(url):
         webbrowser.open(url)
 
 
-class ColoredWidget(Widget):
-    """یه پس‌زمینه‌ی تخت و تمام‌صفحه (برای رنگ زمینه‌ی صفحات)."""
+def format_number(x):
+    if float(x).is_integer():
+        return str(int(x))
+    return f'{x:.2f}'
 
+
+AREA_UNIT = 'سانتی\u200cمتر مربع'
+LEN_UNIT = 'سانتی\u200cمتر'
+VOL_UNIT = 'سانتی\u200cمتر مکعب'
+
+# ---------------------------------------------------------------------------
+# تعریف همه‌ی محاسبه‌گرها: هر ورودی (برچسب، کلید، مقدار پیش‌فرض)
+# kind='combined' یعنی یه فرم واحد که چند نتیجه با هم می‌ده (چون اطلاعات لازم یکیه)
+# kind='toggle'   یعنی دو حالت جدا با فیلدهای متفاوت (با دو دکمه بالای صفحه)
+# ---------------------------------------------------------------------------
+
+CONFIGS_2D = {
+    'dayreh': {
+        'screen_title': 'مساحت و محیط دایره',
+        'menu_title': 'مساحت و محیط دایره',
+        'kind': 'toggle',
+        'modes': {
+            'masahat': {
+                'label': 'مساحت',
+                'fields': [('شعاع', 'r', ''), ('عدد پی', 'pi', '3.14')],
+                'compute': lambda v: v['r'] * v['r'] * v['pi'],
+                'result_label': 'مساحت', 'unit': AREA_UNIT,
+            },
+            'mohit': {
+                'label': 'محیط',
+                'fields': [('قطر', 'd', ''), ('عدد پی', 'pi', '3.14')],
+                'compute': lambda v: v['d'] * v['pi'],
+                'result_label': 'محیط', 'unit': LEN_UNIT,
+            },
+        },
+    },
+    'morabae': {
+        'screen_title': 'مساحت و محیط مربع',
+        'menu_title': 'مساحت و محیط مربع',
+        'kind': 'combined',
+        'fields': [('ضلع', 'a', '')],
+        'results': [
+            {'label': 'مساحت', 'compute': lambda v: v['a'] * v['a'], 'unit': AREA_UNIT},
+            {'label': 'محیط', 'compute': lambda v: v['a'] * 4, 'unit': LEN_UNIT},
+        ],
+    },
+    'mosalas': {
+        'screen_title': 'مساحت و محیط مثلث',
+        'menu_title': 'مساحت و محیط مثلث',
+        'kind': 'toggle',
+        'modes': {
+            'masahat': {
+                'label': 'مساحت',
+                'fields': [('قاعده', 'b', ''), ('ارتفاع', 'h', '')],
+                'compute': lambda v: (v['b'] * v['h']) / 2,
+                'result_label': 'مساحت', 'unit': AREA_UNIT,
+            },
+            'mohit': {
+                'label': 'محیط',
+                'fields': [('ضلع ۱', 's1', ''), ('ضلع ۲', 's2', ''), ('ضلع ۳', 's3', '')],
+                'compute': lambda v: v['s1'] + v['s2'] + v['s3'],
+                'result_label': 'محیط', 'unit': LEN_UNIT,
+            },
+        },
+    },
+    'mostatil': {
+        'screen_title': 'مساحت و محیط مستطیل',
+        'menu_title': 'مساحت و محیط مستطیل',
+        'kind': 'combined',
+        'fields': [('طول', 'l', ''), ('عرض', 'w', '')],
+        'results': [
+            {'label': 'مساحت', 'compute': lambda v: v['l'] * v['w'], 'unit': AREA_UNIT},
+            {'label': 'محیط', 'compute': lambda v: 2 * (v['l'] + v['w']), 'unit': LEN_UNIT},
+        ],
+    },
+    'zoozanagheh': {
+        'screen_title': 'مساحت و محیط ذوزنقه',
+        'menu_title': 'مساحت و محیط ذوزنقه',
+        'kind': 'toggle',
+        'modes': {
+            'masahat': {
+                'label': 'مساحت',
+                'fields': [('قاعده\u200cی بزرگ', 'a1', ''), ('قاعده\u200cی کوچک', 'a2', ''), ('ارتفاع', 'h', '')],
+                'compute': lambda v: (v['a1'] + v['a2']) * (v['h'] / 2),
+                'result_label': 'مساحت', 'unit': AREA_UNIT,
+            },
+            'mohit': {
+                'label': 'محیط',
+                'fields': [('ضلع ۱', 's1', ''), ('ضلع ۲', 's2', ''), ('ضلع ۳', 's3', ''), ('ضلع ۴', 's4', '')],
+                'compute': lambda v: v['s1'] + v['s2'] + v['s3'] + v['s4'],
+                'result_label': 'محیط', 'unit': LEN_UNIT,
+            },
+        },
+    },
+}
+
+CONFIGS_3D = {
+    'dayreh': {
+        'screen_title': 'حجم و مساحت جانبی دایره',
+        'menu_title': 'حجم و مساحت جانبی دایره',
+        'kind': 'combined',
+        'fields': [('شعاع', 'r', ''), ('ارتفاع', 'h', ''), ('عدد پی', 'pi', '3.14')],
+        'results': [
+            {'label': 'حجم', 'compute': lambda v: v['pi'] * v['r'] * v['r'] * v['h'], 'unit': VOL_UNIT},
+            {'label': 'مساحت جانبی', 'compute': lambda v: 2 * v['pi'] * v['r'] * v['h'], 'unit': AREA_UNIT},
+        ],
+    },
+    'morabae': {
+        'screen_title': 'حجم و مساحت جانبی مربع',
+        'menu_title': 'حجم و مساحت جانبی مربع',
+        'kind': 'combined',
+        'fields': [('ضلع', 'a', ''), ('ارتفاع', 'h', '')],
+        'results': [
+            {'label': 'حجم', 'compute': lambda v: v['a'] * v['a'] * v['h'], 'unit': VOL_UNIT},
+            {'label': 'مساحت جانبی', 'compute': lambda v: 4 * v['a'] * v['h'], 'unit': AREA_UNIT},
+        ],
+    },
+    'mosalas': {
+        'screen_title': 'حجم و مساحت جانبی مثلث',
+        'menu_title': 'حجم و مساحت جانبی مثلث',
+        'kind': 'toggle',
+        'modes': {
+            'hajm': {
+                'label': 'حجم',
+                'fields': [('قاعده\u200cی مثلث', 'b', ''), ('ارتفاع مثلث', 'th', ''), ('ارتفاع', 'h', '')],
+                'compute': lambda v: ((v['b'] * v['th']) / 2) * v['h'],
+                'result_label': 'حجم', 'unit': VOL_UNIT,
+            },
+            'janebi': {
+                'label': 'مساحت جانبی',
+                'fields': [('ضلع ۱', 's1', ''), ('ضلع ۲', 's2', ''), ('ضلع ۳', 's3', ''), ('ارتفاع', 'h', '')],
+                'compute': lambda v: (v['s1'] + v['s2'] + v['s3']) * v['h'],
+                'result_label': 'مساحت جانبی', 'unit': AREA_UNIT,
+            },
+        },
+    },
+    'mostatil': {
+        'screen_title': 'حجم و مساحت جانبی مستطیل',
+        'menu_title': 'حجم و مساحت جانبی مستطیل',
+        'kind': 'combined',
+        'fields': [('طول', 'l', ''), ('عرض', 'w', ''), ('ارتفاع', 'h', '')],
+        'results': [
+            {'label': 'حجم', 'compute': lambda v: v['l'] * v['w'] * v['h'], 'unit': VOL_UNIT},
+            {'label': 'مساحت جانبی', 'compute': lambda v: 2 * (v['l'] + v['w']) * v['h'], 'unit': AREA_UNIT},
+        ],
+    },
+    'zoozanagheh': {
+        'screen_title': 'حجم و مساحت جانبی ذوزنقه',
+        'menu_title': 'حجم و مساحت جانبی ذوزنقه',
+        'kind': 'toggle',
+        'modes': {
+            'hajm': {
+                'label': 'حجم',
+                'fields': [
+                    ('قاعده\u200cی بزرگ', 'a1', ''), ('قاعده\u200cی کوچک', 'a2', ''),
+                    ('ارتفاع ذوزنقه', 'th', ''), ('ارتفاع', 'h', ''),
+                ],
+                'compute': lambda v: ((v['a1'] + v['a2']) * (v['th'] / 2)) * v['h'],
+                'result_label': 'حجم', 'unit': VOL_UNIT,
+            },
+            'janebi': {
+                'label': 'مساحت جانبی',
+                'fields': [
+                    ('ضلع ۱', 's1', ''), ('ضلع ۲', 's2', ''),
+                    ('ضلع ۳', 's3', ''), ('ضلع ۴', 's4', ''), ('ارتفاع', 'h', ''),
+                ],
+                'compute': lambda v: (v['s1'] + v['s2'] + v['s3'] + v['s4']) * v['h'],
+                'result_label': 'مساحت جانبی', 'unit': AREA_UNIT,
+            },
+        },
+    },
+}
+
+SHAPE_ORDER = ['dayreh', 'morabae', 'mosalas', 'mostatil', 'zoozanagheh']
+
+
+def enable_wrap(widget):
+    widget.halign = 'center'
+    widget.valign = 'middle'
+
+    def _sync(instance, *_):
+        instance.text_size = (instance.width - 16, None)
+
+    widget.bind(width=_sync, height=_sync)
+    _sync(widget)
+
+
+class ColoredWidget(Widget):
     def __init__(self, color_hex, **kwargs):
         super().__init__(**kwargs)
         with self.canvas.before:
@@ -64,8 +246,6 @@ class ColoredWidget(Widget):
 
 
 class Scrim(Widget):
-    """پس‌زمینه‌ی نیمه‌شفاف پشت منو -- فقط وقتی منو بازه لمس رو می‌قاپه."""
-
     def __init__(self, root_ref, **kwargs):
         super().__init__(**kwargs)
         self.root_ref = root_ref
@@ -86,8 +266,6 @@ class Scrim(Widget):
 
 
 class RoundedButton(Button):
-    """دکمه‌ی توپر با گوشه‌های گرد."""
-
     def __init__(self, bg_hex, radius=16, **kwargs):
         super().__init__(**kwargs)
         self.background_normal = ''
@@ -102,210 +280,168 @@ class RoundedButton(Button):
         self._rect.pos = self.pos
         self._rect.size = self.size
 
-
-class OutlineButton(Button):
-    """دکمه‌ی توخالی با کادر رنگی و گوشه‌های گرد."""
-
-    def __init__(self, border_hex, fill_hex=BG_COLOR, radius=16, border_width=2.5, **kwargs):
-        super().__init__(**kwargs)
-        self.background_normal = ''
-        self.background_down = ''
-        self.background_color = (0, 0, 0, 0)
-        self.border_width = border_width
-        with self.canvas.before:
-            Color(*get_color_from_hex(border_hex))
-            self._border = RoundedRectangle(radius=[radius])
-            Color(*get_color_from_hex(fill_hex))
-            self._fill = RoundedRectangle(radius=[max(radius - border_width, 0)])
-        self.bind(pos=self._sync, size=self._sync)
-
-    def _sync(self, *args):
-        self._border.pos = self.pos
-        self._border.size = self.size
-        b = self.border_width
-        self._fill.pos = (self.x + b, self.y + b)
-        self._fill.size = (max(self.width - 2 * b, 0), max(self.height - 2 * b, 0))
+    def set_bg(self, hex_color):
+        self._color.rgba = get_color_from_hex(hex_color)
 
 
-class QuizScreen(Screen):
-    """صفحه‌ی عمومی برای هر نوع تمرین ضرب."""
+class TopBar:
+    """میکسین کوچک برای ساخت دکمه‌ی منو و عنوان بالای صفحه (کد مشترک)."""
 
-    def __init__(self, screen_title, min_val, max_val, fixed_second=None, **kwargs):
-        super().__init__(**kwargs)
-        self.screen_title = screen_title
-        self.min_val = min_val
-        self.max_val = max_val
-        self.fixed_second = fixed_second
-
-        root = FloatLayout()
-        root.add_widget(ColoredWidget(BG_COLOR, size_hint=(1, 1)))
-
+    def build_top_bar(self, root, title_fa):
         self.menu_btn = RoundedButton(
-            bg_hex=DRAWER_COLOR,
-            text='\u00bb\u00bb',
-            font_size='18sp',
-            bold=True,
-            size_hint=(0.14, 0.06),
-            pos_hint={'x': 0.03, 'top': 0.97},
-            color=get_color_from_hex(WHITE),
-            radius=14,
+            bg_hex=DRAWER_COLOR, text='\u00bb\u00bb', font_size='18sp', bold=True,
+            size_hint=(0.14, 0.06), pos_hint={'x': 0.03, 'top': 0.97},
+            color=get_color_from_hex(WHITE), radius=14,
         )
         self.menu_btn.bind(on_press=lambda *_: App.get_running_app().root.toggle_drawer())
         root.add_widget(self.menu_btn)
 
         self.title_label = Label(
-            text=fa(screen_title),
-            font_name=FONT_NAME,
-            font_size='18sp',
-            size_hint=(0.65, 0.06),
-            pos_hint={'center_x': 0.53, 'top': 0.97},
+            text=fa(title_fa), font_name=FONT_NAME, font_size='16sp',
+            size_hint=(0.65, 0.06), pos_hint={'center_x': 0.53, 'top': 0.97},
             color=get_color_from_hex(WHITE),
         )
         root.add_widget(self.title_label)
 
-        self.question_label = Label(
-            text='',
-            font_size='34sp',
-            font_name=FONT_NAME,
-            size_hint=(0.9, 0.18),
-            pos_hint={'center_x': 0.5, 'top': 0.85},
-            color=get_color_from_hex(WHITE),
-        )
-        root.add_widget(self.question_label)
 
-        self.input_box = TextInput(
-            hint_text=fa('جواب رو وارد کن'),
-            multiline=False,
-            input_filter='int',
-            font_size='24sp',
-            font_name=FONT_NAME,
-            size_hint=(0.8, 0.09),
-            pos_hint={'center_x': 0.5, 'top': 0.62},
-            halign='center',
-            padding=[10, 15, 10, 15],
-        )
-        root.add_widget(self.input_box)
+class CalcScreen(Screen, TopBar):
+    """صفحه‌ی عمومی محاسبه: هم برای مساحت/محیط دوبعدی، هم حجم/مساحت جانبی."""
 
-        self.submit_btn = RoundedButton(
-            bg_hex=BLUE,
-            text=fa('بررسی'),
-            font_size='20sp',
-            font_name=FONT_NAME,
-            size_hint=(0.6, 0.08),
-            pos_hint={'center_x': 0.5, 'top': 0.51},
-            color=get_color_from_hex(WHITE),
-            radius=18,
-        )
-        self.submit_btn.bind(on_press=self.check_answer)
-        root.add_widget(self.submit_btn)
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+        self.kind = config['kind']
+        self.input_widgets = {}
+        if self.kind == 'toggle':
+            self.mode = list(config['modes'].keys())[0]
+            self.mode_buttons = {}
 
-        action_row = BoxLayout(
-            orientation='horizontal',
-            spacing=15,
-            size_hint=(0.85, 0.08),
-            pos_hint={'center_x': 0.5, 'top': 0.4},
-        )
-        self.retry_btn = OutlineButton(
-            border_hex=GREEN,
-            text=fa('دوباره'),
-            font_name=FONT_NAME,
-            font_size='18sp',
-            color=get_color_from_hex(WHITE),
-            radius=16,
-        )
-        self.retry_btn.bind(on_press=self.retry)
+        root = FloatLayout()
+        root.add_widget(ColoredWidget(BG_COLOR, size_hint=(1, 1)))
+        self.build_top_bar(root, config['screen_title'])
 
-        self.stop_btn = OutlineButton(
-            border_hex=RED,
-            text=fa('توقف'),
-            font_name=FONT_NAME,
-            font_size='18sp',
-            color=get_color_from_hex(WHITE),
-            radius=16,
-        )
-        self.stop_btn.bind(on_press=self.stop_quiz)
+        content_top = 0.87
+        if self.kind == 'toggle':
+            mode_row = BoxLayout(
+                orientation='horizontal', spacing=10, size_hint=(0.85, 0.07),
+                pos_hint={'center_x': 0.5, 'top': 0.87},
+            )
+            for key, m in config['modes'].items():
+                btn = RoundedButton(
+                    bg_hex=BLUE if key == self.mode else ITEM_COLOR,
+                    text=fa(m['label']), font_name=FONT_NAME, font_size='16sp',
+                    color=get_color_from_hex(WHITE), radius=14,
+                )
+                enable_wrap(btn)
+                btn.bind(on_press=lambda inst, k=key: self.set_mode(k))
+                self.mode_buttons[key] = btn
+                mode_row.add_widget(btn)
+            root.add_widget(mode_row)
+            content_top = 0.77
 
-        action_row.add_widget(self.retry_btn)
-        action_row.add_widget(self.stop_btn)
-        root.add_widget(action_row)
+        content = BoxLayout(
+            orientation='vertical', spacing=12,
+            size_hint=(0.88, content_top - 0.05),
+            pos_hint={'center_x': 0.5, 'top': content_top},
+        )
+
+        scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
+        self.inputs_box = BoxLayout(orientation='vertical', spacing=10, size_hint_y=None, padding=[0, 5, 0, 5])
+        self.inputs_box.bind(minimum_height=self.inputs_box.setter('height'))
+        scroll.add_widget(self.inputs_box)
+        content.add_widget(scroll)
+
+        self.compute_btn = RoundedButton(
+            bg_hex=GREEN, text=fa('محاسبه'), font_name=FONT_NAME, font_size='18sp',
+            color=get_color_from_hex('#1e1e2e'), radius=16, size_hint_y=None, height=54,
+        )
+        self.compute_btn.bind(on_press=self.compute)
+        content.add_widget(self.compute_btn)
 
         self.result_label = Label(
-            text='',
-            font_size='18sp',
-            font_name=FONT_NAME,
-            size_hint=(0.9, 0.18),
-            pos_hint={'center_x': 0.5, 'top': 0.28},
-            color=get_color_from_hex(GREEN),
+            text='', font_name=FONT_NAME, font_size='18sp',
+            size_hint_y=None, height=90, halign='center', valign='top',
+            color=get_color_from_hex(WHITE),
         )
-        root.add_widget(self.result_label)
+        self.result_label.bind(width=lambda i, w: setattr(i, 'text_size', (w, None)))
+        content.add_widget(self.result_label)
 
+        root.add_widget(content)
         self.add_widget(root)
-        self.new_question()
 
-    def new_question(self):
-        self.do1 = random.randint(self.min_val, self.max_val)
-        self.do2 = self.fixed_second if self.fixed_second else random.randint(self.min_val, self.max_val)
-        self.start_time = time.time()
-        self.question_label.text = f'{self.do1} x {self.do2} = ?'
-        self.input_box.text = ''
-        self.input_box.disabled = False
-        self.submit_btn.disabled = False
+        self.build_inputs()
+
+    def set_mode(self, key):
+        self.mode = key
+        for k, btn in self.mode_buttons.items():
+            btn.set_bg(BLUE if k == key else ITEM_COLOR)
+        self.build_inputs()
+
+    def current_fields(self):
+        if self.kind == 'toggle':
+            return self.config['modes'][self.mode]['fields']
+        return self.config['fields']
+
+    def build_inputs(self):
+        self.inputs_box.clear_widgets()
+        self.input_widgets = {}
         self.result_label.text = ''
 
-    def check_answer(self, instance):
-        try:
-            sol = int(self.input_box.text)
-        except ValueError:
-            self.result_label.text = fa('لطفاً یه عدد وارد کن')
-            return
+        for label_fa, key, default in self.current_fields():
+            row = BoxLayout(orientation='vertical', spacing=4, size_hint_y=None, height=70)
+            lbl = Label(
+                text=fa(label_fa), font_name=FONT_NAME, font_size='14sp',
+                size_hint_y=None, height=22, color=get_color_from_hex(WHITE),
+            )
+            ti = TextInput(
+                text=default, multiline=False, input_filter='float', font_size='18sp',
+                size_hint_y=None, height=44, halign='center', padding=[10, 10, 10, 10],
+            )
+            self.input_widgets[key] = ti
+            row.add_widget(lbl)
+            row.add_widget(ti)
+            self.inputs_box.add_widget(row)
 
-        correct = self.do1 * self.do2
-        if sol == correct:
-            elapsed = int(time.time() - self.start_time)
-            self.result_label.text = fa(f'درسته! زمان = {elapsed} ثانیه')
-            self.input_box.disabled = True
-            self.submit_btn.disabled = True
+    def compute(self, instance):
+        values = {}
+        for key, widget in self.input_widgets.items():
+            try:
+                values[key] = float(widget.text)
+            except ValueError:
+                self.result_label.text = fa('لطفاً همه\u200cی مقادیر رو درست وارد کن')
+                return
+
+        if self.kind == 'combined':
+            lines = []
+            for r in self.config['results']:
+                val = r['compute'](values)
+                lines.append(f"{fa(r['label'])} : {format_number(val)} {fa(r['unit'])}")
+            self.result_label.text = '\n'.join(lines)
         else:
-            self.result_label.text = fa('غلطه، دوباره امتحان کن.')
-
-    def retry(self, instance):
-        self.new_question()
-
-    def stop_quiz(self, instance):
-        correct = self.do1 * self.do2
-        self.result_label.text = fa(f'متوقف شد. جواب درست: {correct}')
-        self.input_box.disabled = True
-        self.submit_btn.disabled = True
+            m = self.config['modes'][self.mode]
+            val = m['compute'](values)
+            self.result_label.text = f"{fa(m['result_label'])} : {format_number(val)} {fa(m['unit'])}"
 
 
-class AboutScreen(Screen):
+class AboutScreen(Screen, TopBar):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         root = FloatLayout()
         root.add_widget(ColoredWidget(BG_COLOR, size_hint=(1, 1)))
+        self.build_top_bar(root, 'درباره\u200cی برنامه')
 
         telegram_label = Label(
-            text=fa('Telegram : @BroAmir@2009'),
-            font_name=FONT_NAME,
-            font_size='20sp',
-            halign='center',
-            valign='middle',
-            size_hint=(0.9, 0.15),
-            pos_hint={'center_x': 0.5, 'center_y': 0.58},
-            color=get_color_from_hex(WHITE),
+            text=fa('Telegram : @BroAmir@2009'), font_name=FONT_NAME, font_size='20sp',
+            halign='center', valign='middle', size_hint=(0.9, 0.15),
+            pos_hint={'center_x': 0.5, 'center_y': 0.58}, color=get_color_from_hex(WHITE),
         )
         root.add_widget(telegram_label)
 
         github_label = Label(
             text=fa('GitHub :') + ' [ref=github][u][color=4a90d9]Amir-Eskandari200[/color][/u][/ref]',
-            markup=True,
-            font_name=FONT_NAME,
-            font_size='20sp',
-            halign='center',
-            valign='middle',
-            size_hint=(0.9, 0.15),
-            pos_hint={'center_x': 0.5, 'center_y': 0.42},
-            color=get_color_from_hex(WHITE),
+            markup=True, font_name=FONT_NAME, font_size='20sp',
+            halign='center', valign='middle', size_hint=(0.9, 0.15),
+            pos_hint={'center_x': 0.5, 'center_y': 0.42}, color=get_color_from_hex(WHITE),
         )
         github_label.bind(on_ref_press=lambda instance, ref: open_link('https://github.com/Amir-Eskandari200'))
         root.add_widget(github_label)
@@ -314,56 +450,43 @@ class AboutScreen(Screen):
 
 
 class NavDrawer(BoxLayout):
-    def __init__(self, sm, **kwargs):
+    def __init__(self, sm, entries, **kwargs):
         super().__init__(orientation='vertical', **kwargs)
         self.sm = sm
-        self.padding = [15, 20, 15, 20]
-        self.spacing = 12
+        self.padding = [15, 20, 15, 15]
+        self.spacing = 10
 
         with self.canvas.before:
             Color(*get_color_from_hex(DRAWER_COLOR))
             self._bg = Rectangle()
         self.bind(pos=self._update_bg, size=self._update_bg)
 
-        def make_menu_button(text_fa, target_screen):
+        scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
+        items_box = BoxLayout(orientation='vertical', spacing=8, size_hint_y=None, padding=[0, 0, 0, 10])
+        items_box.bind(minimum_height=items_box.setter('height'))
+
+        for label_fa, screen_name in entries:
             btn = RoundedButton(
-                bg_hex=ITEM_COLOR,
-                text=fa(text_fa),
-                font_name=FONT_NAME,
-                font_size='16sp',
-                size_hint=(1, 0.13),
-                color=get_color_from_hex(WHITE),
-                radius=14,
+                bg_hex=ITEM_COLOR, text=fa(label_fa), font_name=FONT_NAME, font_size='14sp',
+                size_hint_y=None, height=50, color=get_color_from_hex(WHITE), radius=14,
             )
-            btn.bind(on_press=lambda *_: self.go_to(target_screen))
-            return btn
+            enable_wrap(btn)
+            btn.bind(on_press=lambda inst, sn=screen_name: self.go_to(sn))
+            items_box.add_widget(btn)
 
-        self.add_widget(make_menu_button('ضرب اعداد دورقمی در ۱۱', 'quiz_11'))
-        self.add_widget(make_menu_button('ضرب اعداد دورقمی در اعداد دورقمی', 'quiz_2digit'))
-        self.add_widget(make_menu_button('ضرب اعداد سه رقمی در اعداد سه رقمی', 'quiz_3digit'))
-
-        self.add_widget(Widget())
+        scroll.add_widget(items_box)
+        self.add_widget(scroll)
 
         about_btn = RoundedButton(
-            bg_hex=BLUE,
-            text=fa('درباره\u200cی برنامه'),
-            font_name=FONT_NAME,
-            font_size='16sp',
-            size_hint=(1, 0.12),
-            color=get_color_from_hex(WHITE),
-            radius=14,
+            bg_hex=BLUE, text=fa('درباره\u200cی برنامه'), font_name=FONT_NAME, font_size='16sp',
+            size_hint=(1, None), height=50, color=get_color_from_hex(WHITE), radius=14,
         )
         about_btn.bind(on_press=lambda *_: self.go_to('about'))
         self.add_widget(about_btn)
 
         exit_btn = RoundedButton(
-            bg_hex=RED,
-            text=fa('خروج'),
-            font_name=FONT_NAME,
-            font_size='16sp',
-            size_hint=(1, 0.12),
-            color=get_color_from_hex(WHITE),
-            radius=14,
+            bg_hex=RED, text=fa('خروج'), font_name=FONT_NAME, font_size='16sp',
+            size_hint=(1, None), height=50, color=get_color_from_hex(WHITE), radius=14,
         )
         exit_btn.bind(on_press=lambda *_: App.get_running_app().stop())
         self.add_widget(exit_btn)
@@ -382,25 +505,29 @@ class RootWidget(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.drawer_width = 0.72
+        self.drawer_width = 0.75
         self.drawer_open = False
 
         self.sm = ScreenManager(transition=NoTransition())
-        self.sm.add_widget(QuizScreen('ضرب اعداد دورقمی در ۱۱', 10, 99, fixed_second=11, name='quiz_11'))
-        self.sm.add_widget(QuizScreen('ضرب اعداد دورقمی در اعداد دورقمی', 10, 99, name='quiz_2digit'))
-        self.sm.add_widget(QuizScreen('ضرب اعداد سه رقمی در اعداد سه رقمی', 100, 999, name='quiz_3digit'))
+        entries = []
+        for key in SHAPE_ORDER:
+            cfg = CONFIGS_2D[key]
+            self.sm.add_widget(CalcScreen(cfg, name=f'calc_{key}'))
+            entries.append((cfg['menu_title'], f'calc_{key}'))
+        for key in SHAPE_ORDER:
+            cfg = CONFIGS_3D[key]
+            self.sm.add_widget(CalcScreen(cfg, name=f'vol_{key}'))
+            entries.append((cfg['menu_title'], f'vol_{key}'))
+
         self.sm.add_widget(AboutScreen(name='about'))
-        self.sm.current = 'quiz_11'
+        self.sm.current = f'calc_{SHAPE_ORDER[0]}'
         self.add_widget(self.sm)
 
         self.scrim = Scrim(self, size_hint=(1, 1))
         self.scrim.opacity = 0
         self.add_widget(self.scrim)
 
-        # از pos_hint برای منو استفاده نمی‌کنیم چون Layout هر بار موقعیتش رو
-        # بر اساس pos_hint دوباره حساب می‌کنه و وسط انیمیشن، منو رو به‌جای
-        # اولش (بیرون صفحه) برمی‌گردونه. به‌جاش موقعیت رو دستی مدیریت می‌کنیم.
-        self.drawer = NavDrawer(self.sm, size_hint=(None, 1))
+        self.drawer = NavDrawer(self.sm, entries, size_hint=(None, 1))
         self.drawer.width = max(self.width, 1) * self.drawer_width
         self.drawer.x = -self.drawer.width
         self.drawer.y = 0
@@ -430,11 +557,11 @@ class RootWidget(FloatLayout):
         Animation(x=-self.drawer.width, d=0.22, t='in_cubic').start(self.drawer)
 
 
-class QuizApp(App):
+class MathQuizApp(App):
     def build(self):
         self.title = 'Math Quiz'
         return RootWidget()
 
 
 if __name__ == '__main__':
-    QuizApp().run()
+    MathQuizApp().run()
