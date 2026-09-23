@@ -345,9 +345,10 @@ class CalcScreen(Screen, TopBar):
             pos_hint={'center_x': 0.5, 'top': content_top},
         )
 
-        scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
-        self.inputs_box = BoxLayout(orientation='vertical', spacing=10, size_hint_y=None, padding=[0, 5, 0, 5])
+        scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False, bar_width=4)
+        self.inputs_box = BoxLayout(orientation='vertical', spacing=10, size_hint=(None, None), padding=[0, 5, 0, 5])
         self.inputs_box.bind(minimum_height=self.inputs_box.setter('height'))
+        scroll.bind(width=lambda inst, w: setattr(self.inputs_box, 'width', w))
         scroll.add_widget(self.inputs_box)
         content.add_widget(scroll)
 
@@ -461,9 +462,10 @@ class NavDrawer(BoxLayout):
             self._bg = Rectangle()
         self.bind(pos=self._update_bg, size=self._update_bg)
 
-        scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
-        items_box = BoxLayout(orientation='vertical', spacing=8, size_hint_y=None, padding=[0, 0, 0, 10])
+        scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False, bar_width=4)
+        items_box = BoxLayout(orientation='vertical', spacing=8, size_hint=(None, None), padding=[0, 0, 0, 10])
         items_box.bind(minimum_height=items_box.setter('height'))
+        scroll.bind(width=lambda inst, w: setattr(items_box, 'width', w))
 
         for label_fa, screen_name in entries:
             btn = RoundedButton(
