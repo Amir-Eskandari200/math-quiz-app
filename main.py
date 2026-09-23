@@ -323,7 +323,7 @@ class CalcScreen(Screen, TopBar):
         content_top = 0.87
         if self.kind == 'toggle':
             mode_row = BoxLayout(
-                orientation='horizontal', spacing=10, size_hint=(0.85, 0.07),
+                orientation='horizontal', spacing=12, size_hint=(0.94, 0.085),
                 pos_hint={'center_x': 0.5, 'top': 0.87},
             )
             for key, m in config['modes'].items():
@@ -341,7 +341,7 @@ class CalcScreen(Screen, TopBar):
 
         content = BoxLayout(
             orientation='vertical', spacing=12,
-            size_hint=(0.88, content_top - 0.05),
+            size_hint=(0.94, content_top - 0.05),
             pos_hint={'center_x': 0.5, 'top': content_top},
         )
 
@@ -353,7 +353,7 @@ class CalcScreen(Screen, TopBar):
 
         self.compute_btn = RoundedButton(
             bg_hex=GREEN, text=fa('محاسبه'), font_name=FONT_NAME, font_size='18sp',
-            color=get_color_from_hex('#1e1e2e'), radius=16, size_hint_y=None, height=54,
+            color=get_color_from_hex('#1e1e2e'), radius=16, size_hint_y=None, height=60,
         )
         self.compute_btn.bind(on_press=self.compute)
         content.add_widget(self.compute_btn)
@@ -388,14 +388,14 @@ class CalcScreen(Screen, TopBar):
         self.result_label.text = ''
 
         for label_fa, key, default in self.current_fields():
-            row = BoxLayout(orientation='vertical', spacing=4, size_hint_y=None, height=70)
+            row = BoxLayout(orientation='vertical', spacing=6, size_hint_y=None, height=84)
             lbl = Label(
-                text=fa(label_fa), font_name=FONT_NAME, font_size='14sp',
-                size_hint_y=None, height=22, color=get_color_from_hex(WHITE),
+                text=fa(label_fa), font_name=FONT_NAME, font_size='15sp',
+                size_hint_y=None, height=24, color=get_color_from_hex(WHITE),
             )
             ti = TextInput(
-                text=default, multiline=False, input_filter='float', font_size='18sp',
-                size_hint_y=None, height=44, halign='center', padding=[10, 10, 10, 10],
+                text=default, multiline=False, input_filter='float', font_size='20sp',
+                size_hint_y=None, height=54, halign='center', padding=[14, 14, 14, 14],
             )
             self.input_widgets[key] = ti
             row.add_widget(lbl)
@@ -467,8 +467,8 @@ class NavDrawer(BoxLayout):
 
         for label_fa, screen_name in entries:
             btn = RoundedButton(
-                bg_hex=ITEM_COLOR, text=fa(label_fa), font_name=FONT_NAME, font_size='14sp',
-                size_hint_y=None, height=50, color=get_color_from_hex(WHITE), radius=14,
+                bg_hex=ITEM_COLOR, text=fa(label_fa), font_name=FONT_NAME, font_size='15sp',
+                size_hint_y=None, height=56, color=get_color_from_hex(WHITE), radius=14,
             )
             enable_wrap(btn)
             btn.bind(on_press=lambda inst, sn=screen_name: self.go_to(sn))
