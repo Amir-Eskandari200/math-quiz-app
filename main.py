@@ -51,9 +51,16 @@ def format_number(x):
     return f'{x:.2f}'
 
 
-AREA_UNIT = 'سانتی\u200cمتر مربع'
-LEN_UNIT = 'سانتی\u200cمتر'
-VOL_UNIT = 'سانتی\u200cمتر مکعب'
+UNITS = {
+    'length': 'سانتی\u200cمتر',
+    'area': 'سانتی\u200cمتر مربع',
+    'volume': 'سانتی\u200cمتر مکعب',
+}
+UNIT_LABELS = [
+    ('length', 'واحد طول'),
+    ('area', 'واحد مساحت'),
+    ('volume', 'واحد حجم'),
+]
 
 # ---------------------------------------------------------------------------
 # تعریف همه‌ی محاسبه‌گرها: هر ورودی (برچسب، کلید، مقدار پیش‌فرض)
@@ -71,13 +78,13 @@ CONFIGS_2D = {
                 'label': 'مساحت',
                 'fields': [('شعاع', 'r', ''), ('عدد پی', 'pi', '3.14')],
                 'compute': lambda v: v['r'] * v['r'] * v['pi'],
-                'result_label': 'مساحت', 'unit': AREA_UNIT,
+                'result_label': 'مساحت', 'unit_key': 'area',
             },
             'mohit': {
                 'label': 'محیط',
                 'fields': [('قطر', 'd', ''), ('عدد پی', 'pi', '3.14')],
                 'compute': lambda v: v['d'] * v['pi'],
-                'result_label': 'محیط', 'unit': LEN_UNIT,
+                'result_label': 'محیط', 'unit_key': 'length',
             },
         },
     },
@@ -87,8 +94,8 @@ CONFIGS_2D = {
         'kind': 'combined',
         'fields': [('ضلع', 'a', '')],
         'results': [
-            {'label': 'مساحت', 'compute': lambda v: v['a'] * v['a'], 'unit': AREA_UNIT},
-            {'label': 'محیط', 'compute': lambda v: v['a'] * 4, 'unit': LEN_UNIT},
+            {'label': 'مساحت', 'compute': lambda v: v['a'] * v['a'], 'unit_key': 'area'},
+            {'label': 'محیط', 'compute': lambda v: v['a'] * 4, 'unit_key': 'length'},
         ],
     },
     'mosalas': {
@@ -100,13 +107,13 @@ CONFIGS_2D = {
                 'label': 'مساحت',
                 'fields': [('قاعده', 'b', ''), ('ارتفاع', 'h', '')],
                 'compute': lambda v: (v['b'] * v['h']) / 2,
-                'result_label': 'مساحت', 'unit': AREA_UNIT,
+                'result_label': 'مساحت', 'unit_key': 'area',
             },
             'mohit': {
                 'label': 'محیط',
                 'fields': [('ضلع ۱', 's1', ''), ('ضلع ۲', 's2', ''), ('ضلع ۳', 's3', '')],
                 'compute': lambda v: v['s1'] + v['s2'] + v['s3'],
-                'result_label': 'محیط', 'unit': LEN_UNIT,
+                'result_label': 'محیط', 'unit_key': 'length',
             },
         },
     },
@@ -116,8 +123,8 @@ CONFIGS_2D = {
         'kind': 'combined',
         'fields': [('طول', 'l', ''), ('عرض', 'w', '')],
         'results': [
-            {'label': 'مساحت', 'compute': lambda v: v['l'] * v['w'], 'unit': AREA_UNIT},
-            {'label': 'محیط', 'compute': lambda v: 2 * (v['l'] + v['w']), 'unit': LEN_UNIT},
+            {'label': 'مساحت', 'compute': lambda v: v['l'] * v['w'], 'unit_key': 'area'},
+            {'label': 'محیط', 'compute': lambda v: 2 * (v['l'] + v['w']), 'unit_key': 'length'},
         ],
     },
     'zoozanagheh': {
@@ -129,13 +136,13 @@ CONFIGS_2D = {
                 'label': 'مساحت',
                 'fields': [('قاعده\u200cی بزرگ', 'a1', ''), ('قاعده\u200cی کوچک', 'a2', ''), ('ارتفاع', 'h', '')],
                 'compute': lambda v: (v['a1'] + v['a2']) * (v['h'] / 2),
-                'result_label': 'مساحت', 'unit': AREA_UNIT,
+                'result_label': 'مساحت', 'unit_key': 'area',
             },
             'mohit': {
                 'label': 'محیط',
                 'fields': [('ضلع ۱', 's1', ''), ('ضلع ۲', 's2', ''), ('ضلع ۳', 's3', ''), ('ضلع ۴', 's4', '')],
                 'compute': lambda v: v['s1'] + v['s2'] + v['s3'] + v['s4'],
-                'result_label': 'محیط', 'unit': LEN_UNIT,
+                'result_label': 'محیط', 'unit_key': 'length',
             },
         },
     },
@@ -148,8 +155,8 @@ CONFIGS_3D = {
         'kind': 'combined',
         'fields': [('شعاع', 'r', ''), ('ارتفاع', 'h', ''), ('عدد پی', 'pi', '3.14')],
         'results': [
-            {'label': 'حجم', 'compute': lambda v: v['pi'] * v['r'] * v['r'] * v['h'], 'unit': VOL_UNIT},
-            {'label': 'مساحت جانبی', 'compute': lambda v: 2 * v['pi'] * v['r'] * v['h'], 'unit': AREA_UNIT},
+            {'label': 'حجم', 'compute': lambda v: v['pi'] * v['r'] * v['r'] * v['h'], 'unit_key': 'volume'},
+            {'label': 'مساحت جانبی', 'compute': lambda v: 2 * v['pi'] * v['r'] * v['h'], 'unit_key': 'area'},
         ],
     },
     'morabae': {
@@ -158,8 +165,8 @@ CONFIGS_3D = {
         'kind': 'combined',
         'fields': [('ضلع', 'a', ''), ('ارتفاع', 'h', '')],
         'results': [
-            {'label': 'حجم', 'compute': lambda v: v['a'] * v['a'] * v['h'], 'unit': VOL_UNIT},
-            {'label': 'مساحت جانبی', 'compute': lambda v: 4 * v['a'] * v['h'], 'unit': AREA_UNIT},
+            {'label': 'حجم', 'compute': lambda v: v['a'] * v['a'] * v['h'], 'unit_key': 'volume'},
+            {'label': 'مساحت جانبی', 'compute': lambda v: 4 * v['a'] * v['h'], 'unit_key': 'area'},
         ],
     },
     'mosalas': {
@@ -171,13 +178,13 @@ CONFIGS_3D = {
                 'label': 'حجم',
                 'fields': [('قاعده\u200cی مثلث', 'b', ''), ('ارتفاع مثلث', 'th', ''), ('ارتفاع', 'h', '')],
                 'compute': lambda v: ((v['b'] * v['th']) / 2) * v['h'],
-                'result_label': 'حجم', 'unit': VOL_UNIT,
+                'result_label': 'حجم', 'unit_key': 'volume',
             },
             'janebi': {
                 'label': 'مساحت جانبی',
                 'fields': [('ضلع ۱', 's1', ''), ('ضلع ۲', 's2', ''), ('ضلع ۳', 's3', ''), ('ارتفاع', 'h', '')],
                 'compute': lambda v: (v['s1'] + v['s2'] + v['s3']) * v['h'],
-                'result_label': 'مساحت جانبی', 'unit': AREA_UNIT,
+                'result_label': 'مساحت جانبی', 'unit_key': 'area',
             },
         },
     },
@@ -187,8 +194,8 @@ CONFIGS_3D = {
         'kind': 'combined',
         'fields': [('طول', 'l', ''), ('عرض', 'w', ''), ('ارتفاع', 'h', '')],
         'results': [
-            {'label': 'حجم', 'compute': lambda v: v['l'] * v['w'] * v['h'], 'unit': VOL_UNIT},
-            {'label': 'مساحت جانبی', 'compute': lambda v: 2 * (v['l'] + v['w']) * v['h'], 'unit': AREA_UNIT},
+            {'label': 'حجم', 'compute': lambda v: v['l'] * v['w'] * v['h'], 'unit_key': 'volume'},
+            {'label': 'مساحت جانبی', 'compute': lambda v: 2 * (v['l'] + v['w']) * v['h'], 'unit_key': 'area'},
         ],
     },
     'zoozanagheh': {
@@ -203,7 +210,7 @@ CONFIGS_3D = {
                     ('ارتفاع ذوزنقه', 'th', ''), ('ارتفاع', 'h', ''),
                 ],
                 'compute': lambda v: ((v['a1'] + v['a2']) * (v['th'] / 2)) * v['h'],
-                'result_label': 'حجم', 'unit': VOL_UNIT,
+                'result_label': 'حجم', 'unit_key': 'volume',
             },
             'janebi': {
                 'label': 'مساحت جانبی',
@@ -212,7 +219,7 @@ CONFIGS_3D = {
                     ('ضلع ۳', 's3', ''), ('ضلع ۴', 's4', ''), ('ارتفاع', 'h', ''),
                 ],
                 'compute': lambda v: (v['s1'] + v['s2'] + v['s3'] + v['s4']) * v['h'],
-                'result_label': 'مساحت جانبی', 'unit': AREA_UNIT,
+                'result_label': 'مساحت جانبی', 'unit_key': 'area',
             },
         },
     },
@@ -389,14 +396,15 @@ class CalcScreen(Screen, TopBar):
         self.result_label.text = ''
 
         for label_fa, key, default in self.current_fields():
-            row = BoxLayout(orientation='vertical', spacing=6, size_hint_y=None, height=84)
+            row = BoxLayout(orientation='vertical', spacing=6, size_hint_y=None, height=94)
             lbl = Label(
                 text=fa(label_fa), font_name=FONT_NAME, font_size='15sp',
                 size_hint_y=None, height=24, color=get_color_from_hex(WHITE),
             )
             ti = TextInput(
-                text=default, multiline=False, input_filter='float', font_size='20sp',
-                size_hint_y=None, height=54, halign='center', padding=[14, 14, 14, 14],
+                text=default, multiline=False, input_filter='float', font_size='18sp',
+                size_hint_y=None, height=64, halign='center', valign='middle',
+                padding=[14, 18, 14, 0],
             )
             self.input_widgets[key] = ti
             row.add_widget(lbl)
@@ -416,12 +424,70 @@ class CalcScreen(Screen, TopBar):
             lines = []
             for r in self.config['results']:
                 val = r['compute'](values)
-                lines.append(f"{fa(r['label'])} : {format_number(val)} {fa(r['unit'])}")
+                unit = UNITS[r['unit_key']]
+                lines.append(f"{fa(r['label'])} : {format_number(val)} {fa(unit)}")
             self.result_label.text = '\n'.join(lines)
         else:
             m = self.config['modes'][self.mode]
             val = m['compute'](values)
-            self.result_label.text = f"{fa(m['result_label'])} : {format_number(val)} {fa(m['unit'])}"
+            unit = UNITS[m['unit_key']]
+            self.result_label.text = f"{fa(m['result_label'])} : {format_number(val)} {fa(unit)}"
+
+
+class UnitsScreen(Screen, TopBar):
+    """صفحه‌ی تنظیم یکاهای نمایش‌داده‌شده (طول، مساحت، حجم) توسط کاربر."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.entry_widgets = {}
+
+        root = FloatLayout()
+        root.add_widget(ColoredWidget(BG_COLOR, size_hint=(1, 1)))
+        self.build_top_bar(root, 'یکاها')
+
+        content = BoxLayout(
+            orientation='vertical', spacing=14,
+            size_hint=(0.9, 0.7), pos_hint={'center_x': 0.5, 'top': 0.87},
+        )
+
+        for key, label_fa in UNIT_LABELS:
+            row = BoxLayout(orientation='vertical', spacing=6, size_hint_y=None, height=94)
+            lbl = Label(
+                text=fa(label_fa), font_name=FONT_NAME, font_size='15sp',
+                size_hint_y=None, height=24, color=get_color_from_hex(WHITE),
+            )
+            ti = TextInput(
+                text=UNITS[key], multiline=False, font_name=FONT_NAME, font_size='18sp',
+                size_hint_y=None, height=64, halign='center', valign='middle',
+                padding=[14, 18, 14, 0],
+            )
+            self.entry_widgets[key] = ti
+            row.add_widget(lbl)
+            row.add_widget(ti)
+            content.add_widget(row)
+
+        self.save_btn = RoundedButton(
+            bg_hex=GREEN, text=fa('ذخیره'), font_name=FONT_NAME, font_size='18sp',
+            color=get_color_from_hex('#1e1e2e'), radius=16, size_hint_y=None, height=58,
+        )
+        self.save_btn.bind(on_press=self.save_units)
+        content.add_widget(self.save_btn)
+
+        self.msg_label = Label(
+            text='', font_name=FONT_NAME, font_size='15sp',
+            size_hint_y=None, height=30, color=get_color_from_hex(GREEN),
+        )
+        content.add_widget(self.msg_label)
+
+        root.add_widget(content)
+        self.add_widget(root)
+
+    def save_units(self, instance):
+        for key, ti in self.entry_widgets.items():
+            text = ti.text.strip()
+            if text:
+                UNITS[key] = text
+        self.msg_label.text = fa('ذخیره شد')
 
 
 class AboutScreen(Screen, TopBar):
@@ -479,6 +545,13 @@ class NavDrawer(BoxLayout):
         scroll.add_widget(items_box)
         self.add_widget(scroll)
 
+        units_btn = RoundedButton(
+            bg_hex='#e8b339', text=fa('یکاها'), font_name=FONT_NAME, font_size='16sp',
+            size_hint=(1, None), height=50, color=get_color_from_hex('#1e1e2e'), radius=14,
+        )
+        units_btn.bind(on_press=lambda *_: self.go_to('units'))
+        self.add_widget(units_btn)
+
         about_btn = RoundedButton(
             bg_hex=BLUE, text=fa('درباره\u200cی برنامه'), font_name=FONT_NAME, font_size='16sp',
             size_hint=(1, None), height=50, color=get_color_from_hex(WHITE), radius=14,
@@ -521,6 +594,7 @@ class RootWidget(FloatLayout):
             self.sm.add_widget(CalcScreen(cfg, name=f'vol_{key}'))
             entries.append((cfg['menu_title'], f'vol_{key}'))
 
+        self.sm.add_widget(UnitsScreen(name='units'))
         self.sm.add_widget(AboutScreen(name='about'))
         self.sm.current = f'calc_{SHAPE_ORDER[0]}'
         self.add_widget(self.sm)
