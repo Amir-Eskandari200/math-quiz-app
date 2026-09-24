@@ -403,8 +403,8 @@ class CalcScreen(Screen, TopBar):
             )
             ti = TextInput(
                 text=default, multiline=False, input_filter='float', font_size='18sp',
-                size_hint_y=None, height=64, halign='center', valign='middle',
-                padding=[14, 18, 14, 0],
+                size_hint_y=None, height=64, halign='center',
+                padding=[14, 16],
             )
             self.input_widgets[key] = ti
             row.add_widget(lbl)
@@ -458,8 +458,8 @@ class UnitsScreen(Screen, TopBar):
             )
             ti = TextInput(
                 text=UNITS[key], multiline=False, font_name=FONT_NAME, font_size='18sp',
-                size_hint_y=None, height=64, halign='center', valign='middle',
-                padding=[14, 18, 14, 0],
+                size_hint_y=None, height=64, halign='center',
+                padding=[14, 16],
             )
             self.entry_widgets[key] = ti
             row.add_widget(lbl)
