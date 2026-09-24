@@ -396,15 +396,15 @@ class CalcScreen(Screen, TopBar):
         self.result_label.text = ''
 
         for label_fa, key, default in self.current_fields():
-            row = BoxLayout(orientation='vertical', spacing=6, size_hint_y=None, height=94)
+            row = BoxLayout(orientation='vertical', spacing=8, size_hint_y=None, height=118)
             lbl = Label(
                 text=fa(label_fa), font_name=FONT_NAME, font_size='15sp',
                 size_hint_y=None, height=24, color=get_color_from_hex(WHITE),
             )
             ti = TextInput(
-                text=default, multiline=False, input_filter='float', font_size='18sp',
-                size_hint_y=None, height=64, halign='center',
-                padding=[14, 16],
+                text=default, multiline=False, input_filter='float', font_size='20sp',
+                size_hint_y=None, height=86, halign='center',
+                padding=[14, 24],
             )
             self.input_widgets[key] = ti
             row.add_widget(lbl)
@@ -451,15 +451,15 @@ class UnitsScreen(Screen, TopBar):
         )
 
         for key, label_fa in UNIT_LABELS:
-            row = BoxLayout(orientation='vertical', spacing=6, size_hint_y=None, height=94)
+            row = BoxLayout(orientation='vertical', spacing=8, size_hint_y=None, height=118)
             lbl = Label(
                 text=fa(label_fa), font_name=FONT_NAME, font_size='15sp',
                 size_hint_y=None, height=24, color=get_color_from_hex(WHITE),
             )
             ti = TextInput(
-                text=UNITS[key], multiline=False, font_name=FONT_NAME, font_size='18sp',
-                size_hint_y=None, height=64, halign='center',
-                padding=[14, 16],
+                text=UNITS[key], multiline=False, font_name=FONT_NAME, font_size='20sp',
+                size_hint_y=None, height=86, halign='center',
+                padding=[14, 24],
             )
             self.entry_widgets[key] = ti
             row.add_widget(lbl)
