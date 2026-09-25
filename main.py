@@ -352,27 +352,27 @@ class CalcScreen(Screen, TopBar):
             pos_hint={'center_x': 0.5, 'top': content_top},
         )
 
-        scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False, bar_width=4)
+        scroll = ScrollView(size_hint=(1, 2), do_scroll_x=False, bar_width=4)
         self.inputs_box = BoxLayout(orientation='vertical', spacing=10, size_hint=(None, None), padding=[0, 5, 0, 5])
         self.inputs_box.bind(minimum_height=self.inputs_box.setter('height'))
         scroll.bind(width=lambda inst, w: setattr(self.inputs_box, 'width', w))
         scroll.add_widget(self.inputs_box)
         content.add_widget(scroll)
 
-        self.compute_btn = RoundedButton(
-            bg_hex=GREEN, text=fa('محاسبه'), font_name=FONT_NAME, font_size='18sp',
-            color=get_color_from_hex('#1e1e2e'), radius=16, size_hint_y=None, height=60,
-        )
-        self.compute_btn.bind(on_press=self.compute)
-        content.add_widget(self.compute_btn)
-
         self.result_label = Label(
             text='', font_name=FONT_NAME, font_size='18sp',
-            size_hint_y=None, height=90, halign='center', valign='top',
+            size_hint_y=1, halign='center', valign='middle',
             color=get_color_from_hex(WHITE),
         )
         self.result_label.bind(width=lambda i, w: setattr(i, 'text_size', (w, None)))
         content.add_widget(self.result_label)
+
+        self.compute_btn = RoundedButton(
+            bg_hex=GREEN, text=fa('محاسبه'), font_name=FONT_NAME, font_size='18sp',
+            color=get_color_from_hex('#1e1e2e'), radius=16, size_hint_y=None, height=96,
+        )
+        self.compute_btn.bind(on_press=self.compute)
+        content.add_widget(self.compute_btn)
 
         root.add_widget(content)
         self.add_widget(root)
@@ -396,14 +396,14 @@ class CalcScreen(Screen, TopBar):
         self.result_label.text = ''
 
         for label_fa, key, default in self.current_fields():
-            row = BoxLayout(orientation='vertical', spacing=8, size_hint_y=None, height=118)
+            row = BoxLayout(orientation='vertical', spacing=8, size_hint_y=None, height=170)
             lbl = Label(
                 text=fa(label_fa), font_name=FONT_NAME, font_size='15sp',
                 size_hint_y=None, height=24, color=get_color_from_hex(WHITE),
             )
             ti = TextInput(
                 text=default, multiline=False, input_filter='float', font_size='20sp',
-                size_hint_y=None, height=86, halign='center',
+                size_hint_y=None, height=138, halign='center',
                 padding=[14, 24],
             )
             self.input_widgets[key] = ti
@@ -451,14 +451,14 @@ class UnitsScreen(Screen, TopBar):
         )
 
         for key, label_fa in UNIT_LABELS:
-            row = BoxLayout(orientation='vertical', spacing=8, size_hint_y=None, height=118)
+            row = BoxLayout(orientation='vertical', spacing=8, size_hint_y=None, height=170)
             lbl = Label(
                 text=fa(label_fa), font_name=FONT_NAME, font_size='15sp',
                 size_hint_y=None, height=24, color=get_color_from_hex(WHITE),
             )
             ti = TextInput(
                 text=UNITS[key], multiline=False, font_name=FONT_NAME, font_size='20sp',
-                size_hint_y=None, height=86, halign='center',
+                size_hint_y=None, height=138, halign='center',
                 padding=[14, 24],
             )
             self.entry_widgets[key] = ti
@@ -536,7 +536,7 @@ class NavDrawer(BoxLayout):
         for label_fa, screen_name in entries:
             btn = RoundedButton(
                 bg_hex=ITEM_COLOR, text=fa(label_fa), font_name=FONT_NAME, font_size='15sp',
-                size_hint_y=None, height=56, color=get_color_from_hex(WHITE), radius=14,
+                size_hint_y=None, height=90, color=get_color_from_hex(WHITE), radius=14,
             )
             enable_wrap(btn)
             btn.bind(on_press=lambda inst, sn=screen_name: self.go_to(sn))
@@ -547,21 +547,21 @@ class NavDrawer(BoxLayout):
 
         units_btn = RoundedButton(
             bg_hex='#e8b339', text=fa('یکاها'), font_name=FONT_NAME, font_size='16sp',
-            size_hint=(1, None), height=50, color=get_color_from_hex('#1e1e2e'), radius=14,
+            size_hint=(1, None), height=80, color=get_color_from_hex('#1e1e2e'), radius=14,
         )
         units_btn.bind(on_press=lambda *_: self.go_to('units'))
         self.add_widget(units_btn)
 
         about_btn = RoundedButton(
             bg_hex=BLUE, text=fa('درباره\u200cی برنامه'), font_name=FONT_NAME, font_size='16sp',
-            size_hint=(1, None), height=50, color=get_color_from_hex(WHITE), radius=14,
+            size_hint=(1, None), height=80, color=get_color_from_hex(WHITE), radius=14,
         )
         about_btn.bind(on_press=lambda *_: self.go_to('about'))
         self.add_widget(about_btn)
 
         exit_btn = RoundedButton(
             bg_hex=RED, text=fa('خروج'), font_name=FONT_NAME, font_size='16sp',
-            size_hint=(1, None), height=50, color=get_color_from_hex(WHITE), radius=14,
+            size_hint=(1, None), height=80, color=get_color_from_hex(WHITE), radius=14,
         )
         exit_btn.bind(on_press=lambda *_: App.get_running_app().stop())
         self.add_widget(exit_btn)
